@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đôi lời</title>
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Open+Sans:wght@300;400&display=swap" rel="stylesheet">
+  <!-- Fireworks.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/fireworks-js@2/dist/index.umd.min.js"></script>
+  <style>
+    body, html {
+      margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+      background: radial-gradient(circle at center, #000000, #33001a);
+      font-family: 'Open Sans', sans-serif;
+      display:flex; justify-content:center; align-items:center;
+      position:relative;
+    }
+    #card {
+      background: rgba(255,255,255,0.95);
+      border-radius:20px;
+      width:360px; height:260px;
+      padding:20px;
+      box-shadow:0 12px 24px rgba(0,0,0,0.2);
+      position:relative;
+      display:flex; flex-direction:column; justify-content:center;
+      overflow:hidden;
+      transform:scale(0);
+      animation:popIn 0.5s forwards;
+      text-align:center;
+      z-index:2;
+    }
+    @keyframes popIn { to { transform: scale(1); } }
+    .card-animate { animation: popIn 0.4s; }
+    h1 {
+      margin:0 0 10px;
+      font-size:2.5rem;
+      background:linear-gradient(45deg, #d8355c, #ff6b81);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      font-family:'Dancing Script',cursive;
+      text-shadow:2px 2px 6px rgba(0,0,0,0.15);
+    }
+    #text {
+      font-size:1.2rem; line-height:1.5; color:#333;
+      flex-grow:1; overflow-y:auto; text-align:left;
+      padding:0 10px;
+    }
+    .cursor {
+      display:inline-block; background:#333; width:2px; margin-left:4px;
+      animation:blink 0.7s infinite; vertical-align:bottom;
+    }
+    @keyframes blink { 0%,50%{opacity:1;}50.1%,100%{opacity:0;} }
+    #arrow {
+      font-size:2.2rem; color:#d8355c; cursor:pointer; user-select:none;
+      position:absolute; right:15px; bottom:15px; transition:transform 0.2s;
+      z-index:2;
+    }
+    #arrow:hover { transform: translateX(5px) scale(1.1); }
+    #surprise-btn {
+      position:absolute; bottom:40px; padding:12px 24px; font-size:1.1rem;
+      color:#fff; background:#d8355c; border:none; border-radius:30px;
+      cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.2);
+      transition:background 0.3s, transform 0.2s;
+      z-index:2;
+    }
+    #surprise-btn:hover { background:#c23b5a; transform: translateY(-2px); }
+
+    /* Surprise overlay */
+    #surprise-container {
+      display:none;
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.9);
+      z-index:3;
+    }
+    #fireworks-canvas, #nebula-canvas {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+    }
+    #nebula-canvas { z-index:2; }
+
+    /* Falling hearts thick, opaque */
+    .fall-heart {
+      position:absolute; top:-50px; font-size:1.6rem;
+      color:#ff1e76; /* Màu đậm hơn */
+      opacity:1;
+      text-shadow: 0 0 4px rgba(255,30,118,0.8);
+      animation:fallDown linear forwards;
+    }
+    @keyframes fallDown {
+      to { transform: translateY(110vh); }
+    }
+
+    audio { display:none; }
+  </style>
+</head>
+<body>
+  <audio id="bg-music" src="https://example.com/romantic-music.mp3" loop></audio>
+
+  <!-- Message Card -->
+  <div id="card">
+    <h1>Đôi lời nhắn gửi</h1>
+    <div id="text"></div><span id="cursor" class="cursor"></span>
+    <div id="arrow">&rarr;</div>
+  </div>
+
+  <!-- Surprise Trigger -->
+  <button id="surprise-btn">Bấm vào đây nào baby</button>
+
+  <!-- Surprise Overlay -->
+  <div id="surprise-container">
+    <canvas id="fireworks-canvas"></canvas>
+    <canvas id="nebula-canvas"></canvas>
+  </div>
+
+  <script>
+    // Typing & Card Logic
+    const messages = [
+      "Baby à,",
+      "Em biết đã làm nhiều điều khiến cho chị không vui,",
+      "Mong chị tha thứ cho em, và đừng bỏ em nha ! ",
+      "Ngoan, iu iu thương thương!"
+    ];
+    const textEl = document.getElementById('text'),
+          cursorEl = document.getElementById('cursor'),
+          arrowEl = document.getElementById('arrow'),
+          cardEl = document.getElementById('card'),
+          surpriseBtn = document.getElementById('surprise-btn'),
+          music = document.getElementById('bg-music');
+    let current = -1, typing;
+    function typeWriter(text) {
+      let idx = 0; textEl.textContent = ''; cursorEl.style.display = 'inline-block';
+      cardEl.classList.add('card-animate');
+      (function type() {
+        if (idx < text.length) {
+          textEl.textContent += text.charAt(idx++);
+          typing = setTimeout(type, 40);
+        } else {
+          clearTimeout(typing);
+          cursorEl.style.display = 'none';
+        }
+      })();
+    }
+    arrowEl.addEventListener('click', () => {
+      if (current < messages.length - 1) {
+        current++; clearTimeout(typing); music.play(); typeWriter(messages[current]);
+      }
+      if (current === messages.length - 1) arrowEl.style.display = 'none';
+    });
+
+    // Fireworks
+    const fwCanvas = document.getElementById('fireworks-canvas');
+    let fireworks;
+    function startFireworks() {
+      fireworks = new Fireworks.default(fwCanvas, {
+        hue: { min: 0, max: 360 },
+        rocketsPoint: { min: 0.5, max: 0.5 },
+        speed: 2, acceleration: 1.05, friction: 0.95, gravity: 1.2,
+        particles: 120, trace: 3, explosion: 4, autoresize: true,
+        brightness: { min: 60, max: 100 }, decay: { min: 0.02, max: 0.04 }
+      });
+      fireworks.start();
+      setTimeout(() => fireworks.stop(), 3500);
+    }
+
+    // Nebula Effect (heart outline)
+    const nebulaCanvas = document.getElementById('nebula-canvas');
+    const ctx = nebulaCanvas.getContext('2d');
+    let nebulaParticles = [];
+    function initNebula() {
+      nebulaCanvas.width = window.innerWidth;
+      nebulaCanvas.height = window.innerHeight;
+      nebulaParticles = [];
+      const centerX = nebulaCanvas.width / 2;
+      const centerY = nebulaCanvas.height / 2;
+      const scale = 15;
+      for (let t = 0; t < Math.PI * 2; t += 0.02) {
+        const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+        const y = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * -scale;
+        nebulaParticles.push({ x: centerX + x, y: centerY + y, angle: t, speed: 0.002 + Math.random() * 0.002, radius: 2 + Math.random() * 8 });
+      }
+    }
+    function drawNebula() {
+      const w = nebulaCanvas.width;
+      const h = nebulaCanvas.height;
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fillRect(0, 0, w, h);
+      nebulaParticles.forEach(p => {
+        p.angle += p.speed;
+        const px = (p.x - w/2) * Math.cos(p.speed) - (p.y - h/2) * Math.sin(p.speed) + w/2;
+        const py = (p.x - w/2) * Math.sin(p.speed) + (p.y - h/2) * Math.cos(p.speed) + h/2;
+        p.x = px; p.y = py;
+        ctx.fillStyle = 'rgba(255,182,193,0.5)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, 2*Math.PI); ctx.fill();
+      });
+      // Heart outline glow
+      ctx.save(); ctx.translate(w/2, h/2);
+      ctx.strokeStyle = 'rgba(255,20,147,0.9)';
+      ctx.lineWidth = 10;
+      ctx.shadowBlur = 40;
+      ctx.shadowColor = 'rgba(255,20,147,0.8)';
+      ctx.beginPath(); const scaleH = 15;
+      for (let t = 0; t < Math.PI*2; t += 0.01) {
+        const x = 16*Math.pow(Math.sin(t),3)*scaleH;
+        const y = (13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)) * -scaleH;
+        if (t === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath(); ctx.stroke(); ctx.restore();
+      requestAnimationFrame(drawNebula);
+    }
+
+    // Spawn many falling hearts
+    function spawnFallingHeart() {
+      const heartCount = 5;
+      for (let i = 0; i < heartCount; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'fall-heart';
+        heart.textContent = '❤️';
+        heart.style.left = Math.random() * 100 + 'vw';
+        heart.style.animationDuration = 3 + Math.random()*3 + 's';
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 8000);
+      }
+    }
+
+    surpriseBtn.addEventListener('click', () => {
+      cardEl.style.display = 'none';
+      arrowEl.style.display = 'none';
+      surpriseBtn.style.display = 'none';
+      const container = document.getElementById('surprise-container');
+      container.style.display = 'block';
+      music.play();
+      startFireworks();
+      setTimeout(() => {
+        initNebula();
+        drawNebula();
+        const interval = setInterval(spawnFallingHeart, 200);
+        setTimeout(() => clearInterval(interval), 8000);
+      }, 3600);
+    });
+    window.addEventListener('resize', () => {
+      if (nebulaParticles.length) initNebula();
+    });
+  </script>
+</body>
+</html>
